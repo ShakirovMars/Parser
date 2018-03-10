@@ -18,10 +18,32 @@ public class Parser {
 
     public int[][] getMatrix(String rootLink, int limit ){
         this.matrix = new int [limit][limit];
-        this.rootLinks =  parseLink(rootLink,limit);
+        craeteRootLinks(rootLink,limit);
         createMatrix();
 
         return this.matrix;
+    }
+
+    private void craeteRootLinks(String rootLink, int limit) {
+        ArrayList<String> links;
+        int i = 0;
+        boolean isUnique = true;
+        this.rootLinks =  parseLink(rootLink,limit);
+        while (rootLinks.size()<limit){
+            links = parseLink(this.rootLinks.get(i),0);
+            i++;
+            for(int j=0; j<links.size() && this.rootLinks.size()<limit;j++){
+               for(int k=0;k<this.rootLinks.size()&& this.rootLinks.size()<limit;k++){
+                   if(links.get(j).equals(this.rootLinks.get(k))){
+                      isUnique = false;
+                   }
+               }
+               if(isUnique) {
+                   this.rootLinks.add(links.get(j));
+               }
+               isUnique = true;
+            }
+        }
     }
 
 
