@@ -1,5 +1,9 @@
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -11,6 +15,17 @@ public class Parser {
 
     private ArrayList<String> rootLinks = new ArrayList<String>();
     private int matrix [][];
+    private int matrixRunnable [][];
+
+    // for coordinate method
+    private ArrayList<Integer> values = new ArrayList<Integer>();
+    private ArrayList<Integer> iIndex = new ArrayList<Integer>();
+    private ArrayList<Integer> jIndex = new ArrayList<Integer>();
+
+    // for coordinate method
+    private ArrayList<Integer> valuesRunnable = new ArrayList<Integer>();
+    private ArrayList<Integer> iIndexRunnable = new ArrayList<Integer>();
+    private ArrayList<Integer> jIndexRunnable = new ArrayList<Integer>();
 
     public ArrayList<String> getRootLinks() {
         return rootLinks;
@@ -18,13 +33,30 @@ public class Parser {
 
     public int[][] getMatrix(String rootLink, int limit ){
         this.matrix = new int [limit][limit];
-        craeteRootLinks(rootLink,limit);
-        createMatrix();
+        this.matrixRunnable = new int [limit] [limit];
+
+        createRootLinks(rootLink,limit);
+//        createMatrix();
+        createMatrixRunnable();
+
+//        for(int i =0; i<matrix.length;i++){
+//            for(int j =0; j<matrix.length;j++){
+//                System.out.print(matrix[i][j]);
+//            }
+//            System.out.println();
+//        }
+
+        for(int i =0; i<matrixRunnable.length;i++){
+            for(int j =0; j<matrixRunnable.length;j++){
+                System.out.print(matrixRunnable[i][j]);
+            }
+            System.out.println();
+        }
 
         return this.matrix;
     }
 
-    private void craeteRootLinks(String rootLink, int limit) {
+    private void createRootLinks(String rootLink, int limit) {
         ArrayList<String> links;
         int i = 0;
         boolean isUnique = true;
@@ -89,7 +121,7 @@ public class Parser {
         return links;
     }
 
-    private boolean checkDuplication(ArrayList<String> links,String link){
+    public boolean checkDuplication(ArrayList<String> links,String link){
         for(int i=0; i<links.size();i++){
             if(link.equals(links.get(i))){
                return true;
@@ -107,10 +139,48 @@ public class Parser {
                 for(int k=0; k<links.size();k++){
                     if(rootLinks.get(j).equals(links.get(k))){
                         matrix[i][j] = 1;
+                        this.values.add(1);
+                        this.iIndex.add(i);
+                        this.jIndex.add(j);
                         break;
                     }
                 }
             }
         }
+    }
+
+    private void createMatrixRunnable() {
+        ArrayList<String> links;
+        ExecutorService executor = Executors.newCachedThreadPool();
+
+        for (int i=0; i<rootLinks.size(); i++){
+            Future<ArrayList<Integer>> future = executor.submit(new IterativeRun(rootLinks, i));
+
+            try {
+                for(int k=0; k<rootLinks.size();k++){
+                    matrixRunnable[i][k] = future.get().get(k);
+                    this.valuesRunnable.add(1);
+                    this.iIndexRunnable.add(i);
+                    this.jIndexRunnable.add(k);
+                    break;
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public ArrayList<Integer> getValues() {
+        return values;
+    }
+
+    public ArrayList<Integer> getiIndex() {
+        return iIndex;
+    }
+
+    public ArrayList<Integer> getjIndex() {
+        return jIndex;
     }
 }
