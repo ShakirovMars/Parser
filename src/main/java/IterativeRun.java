@@ -12,7 +12,7 @@ public class IterativeRun implements Callable<ArrayList<Integer>> {
     }
 
     @Override
-    public ArrayList<Integer> call() {
+    public ArrayList<Integer> call() throws InterruptedException {
         Parser parser = new Parser();
         ArrayList<Integer> result = new ArrayList<Integer>();
         int current;

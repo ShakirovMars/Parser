@@ -1,14 +1,14 @@
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.List;
+import java.util.concurrent.*;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+
+import javax.sound.midi.Soundbank;
 
 
 public class Parser {
@@ -36,22 +36,16 @@ public class Parser {
         this.matrixRunnable = new int [limit] [limit];
 
         createRootLinks(rootLink,limit);
-//        createMatrix();
+        createMatrix();
         createMatrixRunnable();
 
-//        for(int i =0; i<matrix.length;i++){
-//            for(int j =0; j<matrix.length;j++){
-//                System.out.print(matrix[i][j]);
+
+//        for(int i =0; i<matrixRunnable.length;i++){
+//            for(int j =0; j<matrixRunnable.length;j++){
+//                System.out.print(matrixRunnable[i][j]);
 //            }
 //            System.out.println();
 //        }
-
-        for(int i =0; i<matrixRunnable.length;i++){
-            for(int j =0; j<matrixRunnable.length;j++){
-                System.out.print(matrixRunnable[i][j]);
-            }
-            System.out.println();
-        }
 
         return this.matrix;
     }
@@ -131,6 +125,8 @@ public class Parser {
     }
 
     private void createMatrix() {
+        long startTime = System.currentTimeMillis();
+
         ArrayList<String> links;
         for (int i=0; i<rootLinks.size(); i++){
             links=this.parseLink(rootLinks.get(i),0);
@@ -147,29 +143,46 @@ public class Parser {
                 }
             }
         }
+
+        long stopTime = System.currentTimeMillis();
+
+        System.out.println("Basic: " + ((stopTime - startTime) / 1000)+ "c");
     }
 
     private void createMatrixRunnable() {
+        long startTime = System.currentTimeMillis();
+
         ArrayList<String> links;
-        ExecutorService executor = Executors.newCachedThreadPool();
+        ExecutorService executor = Executors.newFixedThreadPool(5);
+        List<Future<ArrayList<Integer>>> future;
+
+        List<IterativeRun> tasks =  new ArrayList<>();
 
         for (int i=0; i<rootLinks.size(); i++){
-            Future<ArrayList<Integer>> future = executor.submit(new IterativeRun(rootLinks, i));
+            tasks.add(new IterativeRun(rootLinks, i));
+        }
 
-            try {
-                for(int k=0; k<rootLinks.size();k++){
-                    matrixRunnable[i][k] = future.get().get(k);
+        try {
+            future = executor.invokeAll(tasks);
+            for (int i=0; i<rootLinks.size(); i++) {
+                for (int k = 0; k < rootLinks.size(); k++) {
+                    matrixRunnable[i][k] = future.get(i).get().get(k);
                     this.valuesRunnable.add(1);
                     this.iIndexRunnable.add(i);
                     this.jIndexRunnable.add(k);
-                    break;
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
             }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } finally {
+            executor.shutdown();
         }
+
+        long stopTime = System.currentTimeMillis();
+
+        System.out.println("Runnable: " + ((stopTime - startTime) / 1000) + "c");
     }
 
     public ArrayList<Integer> getValues() {
